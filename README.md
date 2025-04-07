@@ -1,13 +1,6 @@
-# grist-api
+# Grist API Library
 
-[![npm version](https://badge.fury.io/js/grist-api.svg)](https://badge.fury.io/js/grist-api)
-[![Build Status](https://travis-ci.org/gristlabs/grist-api.svg?branch=master)](https://travis-ci.org/gristlabs/grist-api)
-
-> NodeJS client for interacting with Grist.
-
-The `grist-api` package simplifies using the [Grist](https://www.getgrist.com)
-API in Javascript/TypeScript. There is also an analogous [Python
-package](https://pypi.org/project/grist-api/).
+A TypeScript/JavaScript client library for interacting with the Grist API.
 
 ## Installation
 
@@ -15,102 +8,255 @@ package](https://pypi.org/project/grist-api/).
 npm install grist-api
 ```
 
-## Usage Example
+## Quick Start
 
-```javascript
-const {GristDocAPI} = require('grist-api');
+```typescript
+import { GristDocAPI } from 'grist-api';
 
-// Put here the URL of your document.
-const DOC_URL = "https://docs.getgrist.com/123456789abc/My-Document";
+// Initialize the API client
+const api = new GristDocAPI({
+  apiKey: 'your-api-key',  // Optional: can also be read from GRIST_API_KEY env var or ~/.grist-api-key
+  server: 'https://api.getgrist.com',  // Optional: defaults to https://api.getgrist.com
+});
 
-async function main() {
-  const api = new GristDocAPI(DOC_URL);
-  // Add some rows to a table
-  await api.addRecords('Food', [
-    {Name: 'eggs', AmountToBuy: 12},
-    {Name: 'beets', AmountToBuy: 1},
-  ]);
+// Set document context (required for document operations)
+api.setDocId('doc-id-or-url');
 
-  // Fetch all rows.
-  const data = await api.fetchTable('Food');
-  console.log(data);
-
-  // Sync data by a key column.
-  await api.syncTable('Food', [{Name: 'eggs', AmountToBuy: 0}], ['Name']);
-}
-
-main();
+// Example: Fetch records from a table
+const records = await api.fetchTable({
+  tableName: 'Table1',
+  filters: { category: ['electronics', 'books'] }  // Optional filters
+});
 ```
 
-To run this, first prepare a Grist doc to play with:
-  1. Create a Grist doc
-  2. Add a table named `Food` with columns `Name` and `AmountToBuy`
-  3. Set `DOC_URL` in the code above to that of your document (the part after doc ID doesn't
-     matter).
+## Authentication
 
-To use the API, you need to get your API key in Grist from Profile Settings. This API key may be
-provided to `GristDocAPI` in several ways, and is looked for in this order:
+The library supports three ways to provide your Grist API key:
 
-- As a constructor argument: `new GristDocAPI(DOC_URL, {apiKey: 'XXX'})`.
-- In an environment variable: `GRIST_API_KEY=<key>`.
-- In the `~/.grist-api-key` file.
+1. Pass it directly when creating the client:
+```typescript
+const api = new GristDocAPI({ apiKey: 'your-api-key' });
+```
 
-Public documents may be accessed without an API key, or with an empty string for the API key (to
-stop searching the locations above).
+2. Set the `GRIST_API_KEY` environment variable
 
-## Classes and methods
+3. Store it in `~/.grist-api-key` file
 
-### new GristDocAPI(docUrlOrId, options)
+## API Reference
 
-Create an API instance. You may specify either a doc URL, or just the doc ID (the part
-of the URL after "/doc/"). If you specify a URL, then `options.server` is unneeded and ignored.
+### Organization Operations
 
-The options are:
-  - `apiKey` (string) The API key, available in Grist from Profile Settings. If omitted, will be taken from
-    `GRIST_API_KEY` env var, or `~/.grist-api-key` file.
-  - `server` (string) The server URL, i.e. the part of the document URL before "/doc/". Ignored if
-    you specify a full URL for the first argument.
-  - `dryrun` (boolean) If set, will not make any changes to the doc. You may run with
-    `DEBUG=grist-api` to see what calls it would make.
-  - `chunkSize` (number, default: 500) Split large requests into smaller one, each limited to
-    chunkSize rows. If your requests are very large and hit size limits, try using a smaller value.
+```typescript
+// List all organizations
+const orgs = await api.listOrgs();
 
-### fetchTable(tableName, filters?)
+// Get organization by ID
+const org = await api.getOrg({ orgId: 123 });
 
-Fetch all data in the table by the given name, returning a list of records with attributes
-corresponding to the columns in that table.
+// Get organization by name
+const org = await api.getOrgByName({ name: 'My Org' });
 
-If filters is given, it should be an object mapping column names to array values, to fetch only
-records that match. For example `{Name: ['eggs']}`.
+// Get organization by domain
+const org = await api.getOrgByDomain({ domain: 'example.com' });
 
-### addRecords(tableName, records)
+// Modify organization
+await api.modifyOrg({ 
+  orgId: 123,
+  name: 'New Org Name'
+});
 
-Adds new records to the given table. The data is a list of objects, with attributes
-corresponding to the columns in the table. Returns a list of added rowIds.
+// Manage organization access
+await api.modifyOrgAccess({
+  orgId: 123,
+  delta: {
+    users: {
+      'user@example.com': 'editors'
+    }
+  }
+});
+```
 
-### deleteRecords(tableName, recordIds)
+### Workspace Operations
 
-Deletes records from the given table. The data is a list of record IDs.
+```typescript
+// List workspaces
+const workspaces = await api.listWorkspaces({ orgId: 123 });
 
-### updateRecords(tableName, records)
+// Create workspace
+const workspaceId = await api.createWorkspace({
+  orgId: 123,
+  name: 'New Workspace'
+});
 
-Update existing records in the given table. The data is a list of objects, with attributes
-corresponding to the columns in the table. Each object must contain the key "id" with the
-rowId of the row to update.
+// Get workspace
+const workspace = await api.getWorkspace({ workspaceId: 456 });
 
-If records aren't all for the same set of columns, then a single-call update is impossible,
-so we'll make multiple calls.
+// Modify workspace
+await api.modifyWorkspace({
+  workspaceId: 456,
+  name: 'Updated Workspace'
+});
 
-### syncTable(tableName, records, keyColIds, {filters?})
+// Manage workspace access
+await api.modifyWorkspaceAccess({
+  workspaceId: 456,
+  delta: {
+    users: {
+      'user@example.com': 'editors'
+    }
+  }
+});
+```
 
-Updates Grist table with new data, updating existing rows or adding new ones, matching rows on
-the given key columns. (This method does not remove rows from Grist.)
+### Document Operations
 
-The `records` parameter is a list of objects with column IDs as attributes.
+```typescript
+// Create document
+const docId = await api.createDoc({
+  workspaceId: 456,
+  name: 'New Document'
+});
 
-The `keyColIds` parameter lists primary-key columns, which must be present in the given records.
+// Get document
+const doc = await api.getDoc();
 
-If `options.filters` is given, it should be an object mapping colIds to arrays
-of values. Only records matching these filters will be matched as candidates
-for existing rows to update. New records whose columns don't match filters will
-be ignored.
+// Get document by name
+const doc = await api.getDocByName({
+  workspaceId: 456,
+  name: 'My Document'
+});
+
+// Modify document
+await api.modifyDoc({
+  name: 'Updated Document'
+});
+
+// Move document
+await api.moveDoc({
+  workspaceId: 789  // destination workspace
+});
+
+// Download document
+const docData = await api.downloadDoc({
+  nohistory: true,  // Optional: exclude history
+  template: true    // Optional: download as template
+});
+```
+
+### Table Operations
+
+```typescript
+// Create table
+const tableId = await api.createTable({
+  schema: {
+    tables: [{
+      id: 'Table1',
+      columns: [
+        { id: 'Name', fields: { label: 'Name' } },
+        { id: 'Age', fields: { label: 'Age' } }
+      ]
+    }]
+  }
+});
+
+// List tables
+const tables = await api.listTables();
+
+// Get table by ID
+const table = await api.getTableById({ tableId: 'Table1' });
+
+// Fetch table data
+const records = await api.fetchTable({
+  tableName: 'Table1',
+  filters: {    // Optional filters
+    category: ['electronics', 'books']
+  }
+});
+
+// Add records
+const newIds = await api.addRecords({
+  tableName: 'Table1',
+  records: [
+    { Name: 'John', Age: 30 },
+    { Name: 'Jane', Age: 25 }
+  ]
+});
+
+// Update records
+await api.updateRecords({
+  tableName: 'Table1',
+  records: [
+    { id: 1, Name: 'John Updated' },
+    { id: 2, Age: 26 }
+  ]
+});
+
+// Delete records
+await api.deleteRecords({
+  tableName: 'Table1',
+  recordIds: [1, 2, 3]
+});
+
+// Sync table (upsert based on key columns)
+const result = await api.syncTable({
+  tableName: 'Table1',
+  records: [
+    { Name: 'John', Age: 31 },
+    { Name: 'Jane', Age: 26 }
+  ],
+  keyColIds: ['Name'],
+  filters: { Age: [25, 30] }  // Optional
+});
+```
+
+### File Attachments
+
+```typescript
+// Attach files
+const attachmentIds = await api.attach({
+  files: [file1, file2]  // File objects
+});
+```
+
+## Error Handling
+
+The library throws errors with descriptive messages when API calls fail:
+
+```typescript
+try {
+  await api.fetchTable({ tableName: 'NonExistentTable' });
+} catch (error) {
+  console.error('API Error:', error.message);
+}
+```
+
+## Configuration Options
+
+The `GristDocAPI` constructor accepts these options:
+
+```typescript
+const api = new GristDocAPI({
+  apiKey?: string;      // API key for authentication
+  server?: string;      // API server URL (default: 'https://api.getgrist.com')
+  dryrun?: boolean;     // If true, skips actual API calls (for testing)
+  chunkSize?: number;   // Batch size for bulk operations (default: 500)
+});
+```
+
+## Types
+
+The library includes TypeScript type definitions for all API operations. Key types include:
+
+- `CellValue`: Values in Grist data cells (number|string|boolean|null|[string, ...any[]])
+- `IRecord`: Record representing a row in a Grist table
+- `ITableData`: Column-oriented data format used by Grist
+- `AccessLevel`: 'owners' | 'editors' | 'viewers' | 'members' | null
+- `IFilterSpec`: Specification for filtering table data
+
+## Contributing
+
+Contributions are welcome! Please submit issues and pull requests on GitHub.
+
+## License
+
+[License information goes here]
