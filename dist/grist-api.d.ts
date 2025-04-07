@@ -25,12 +25,12 @@ export interface IFilterSpec {
 }
 export declare type AccessLevel = 'owners' | 'editors' | 'viewers' | 'members' | null;
 export interface IOrg {
-    id: number;
+    id: string | number;
     name: string;
     domain: string;
 }
 export interface IWorkspace {
-    id: number;
+    id: string | number;
     name: string;
     docs?: IDoc[];
 }
@@ -40,7 +40,7 @@ export interface IDoc {
     workspace?: IWorkspace;
 }
 export interface IUserAccess {
-    id: number;
+    id: string | number;
     name: string;
     email?: string;
     access: AccessLevel;
@@ -111,30 +111,30 @@ export interface ModifyOrgAccessOptions {
     delta: IAccessDelta;
 }
 export interface GetWorkspaceOptions {
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface ModifyWorkspaceOptions extends IWorkspaceParameters {
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface DeleteWorkspaceOptions {
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface GetWorkspaceAccessOptions {
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface ModifyWorkspaceAccessOptions {
-    workspaceId: number;
+    workspaceId: string | number;
     delta: IWorkspaceAccessWrite;
 }
 export interface CreateDocOptions extends IDocParameters {
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface GetDocOptions {
     docId?: string;
 }
 export interface GetDocByNameOptions {
     name: string;
-    workspaceId: number;
+    workspaceId: string | number;
 }
 export interface ModifyDocOptions extends IDocParameters {
     docId?: string;
@@ -143,7 +143,7 @@ export interface DeleteDocOptions {
     docId?: string;
 }
 export interface MoveDocOptions {
-    workspaceId: number;
+    workspaceId: string | number;
     docId?: string;
 }
 export interface GetDocAccessOptions {
