@@ -510,7 +510,7 @@ export class GristDocAPI {
 
   public async createTable(options: CreateTableOptions): Promise<number> {
     const { docId, ...params } = options;
-    return await this._docCall(`tables`, params, 'POST', undefined, docId);
+    return await this._docCall(`tables`, params.schema, 'POST', undefined, docId);
   }
 
   public async listTables(options: ListTablesOptions): Promise<ITable[]> {
